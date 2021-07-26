@@ -1,0 +1,502 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Metadata:
+    Generator: "former2"
+Description: ""
+Parameters:
+    ProjectName:
+        Type: String
+    
+    AZ1:
+        Type: AWS::EC2::AvailabilityZone::Name
+
+    AZ2:
+        Type: AWS::EC2::AvailabilityZone::Name
+
+    EC2key:
+        Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+    #######VPC###################################################################################################################
+    EC2VPC:
+        Type: "AWS::EC2::VPC"
+        Properties:
+            CidrBlock: "10.0.0.0/16"
+            EnableDnsSupport: true
+            EnableDnsHostnames: true
+            InstanceTenancy: "default"
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-VPC"
+    #######subnet###################################################################################################################
+    SubnetALB1:
+        Type: "AWS::EC2::Subnet"
+        Properties:
+            AvailabilityZone: !Ref AZ1
+            CidrBlock: "10.0.1.0/24"
+            VpcId: !Ref EC2VPC
+            MapPublicIpOnLaunch: true
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-Subnet-ALB1"
+
+    SubnetALB2:
+        Type: "AWS::EC2::Subnet"
+        Properties:
+            AvailabilityZone: !Ref AZ2
+            CidrBlock: "10.0.2.0/24"
+            VpcId: !Ref EC2VPC
+            MapPublicIpOnLaunch: true
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-Subnet-ALB2"
+    SubnetAP1:
+        Type: "AWS::EC2::Subnet"
+        Properties:
+            AvailabilityZone: !Ref AZ1
+            CidrBlock: "10.0.3.0/24"
+            VpcId: !Ref EC2VPC
+            MapPublicIpOnLaunch: true
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-Subnet-AP1"
+
+    SubnetAP2:
+        Type: "AWS::EC2::Subnet"
+        Properties:
+            AvailabilityZone: !Ref AZ2
+            CidrBlock: "10.0.4.0/24"
+            VpcId: !Ref EC2VPC
+            MapPublicIpOnLaunch: true
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-Subnet-AP2"
+    
+    SubnetDB1:
+        Type: "AWS::EC2::Subnet"
+        Properties:
+            AvailabilityZone: !Ref AZ1
+            CidrBlock: "10.0.5.0/24"
+            VpcId: !Ref EC2VPC
+            MapPublicIpOnLaunch: false
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-Subnet-DB1"
+
+    SubnetDB2:
+        Type: "AWS::EC2::Subnet"
+        Properties:
+            AvailabilityZone: !Ref AZ2
+            CidrBlock: "10.0.6.0/24"
+            VpcId: !Ref EC2VPC
+            MapPublicIpOnLaunch: false
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-Subnet-DB2"
+    #######Gateway###################################################################################################################
+    EC2InternetGateway:
+        Type: "AWS::EC2::InternetGateway"
+        Properties:
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-igw"
+
+    EC2VPCGatewayAttachment:
+        Type: "AWS::EC2::VPCGatewayAttachment"
+        Properties:
+            InternetGatewayId: !Ref EC2InternetGateway
+            VpcId: !Ref EC2VPC
+    
+    NatGateway:
+        Type: "AWS::EC2::NatGateway"
+        Properties:
+            SubnetId: !Ref SubnetALB1
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-nat"
+            AllocationId: !GetAtt EC2EIP.AllocationId
+
+    EC2EIP:
+        Type: "AWS::EC2::EIP"
+        Properties:
+            Domain: "vpc"
+    #######RouteTable###################################################################################################################
+    RouteTablePrivate:
+        Type: "AWS::EC2::RouteTable"
+        Properties:
+            VpcId: !Ref EC2VPC
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-private-rt"
+
+    RouteTablePublic:
+        Type: "AWS::EC2::RouteTable"
+        Properties:
+            VpcId: !Ref EC2VPC
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-public-rt"
+
+    RoutePublic:
+        Type: "AWS::EC2::Route"
+        Properties:
+            DestinationCidrBlock: "0.0.0.0/0"
+            GatewayId: !Ref EC2InternetGateway
+            RouteTableId: !Ref RouteTablePublic
+
+    RouteNAT:
+        Type: "AWS::EC2::Route"
+        Properties:
+            DestinationCidrBlock: "0.0.0.0/0"
+            NatGatewayId: !Ref NatGateway
+            RouteTableId: !Ref RouteTablePrivate
+
+    EC2SubnetRouteTableAssociation1:
+        Type: "AWS::EC2::SubnetRouteTableAssociation"
+        Properties:
+            RouteTableId: !Ref RouteTablePublic
+            SubnetId: !Ref SubnetALB1
+    
+    EC2SubnetRouteTableAssociation2:
+        Type: "AWS::EC2::SubnetRouteTableAssociation"
+        Properties:
+            RouteTableId: !Ref RouteTablePublic
+            SubnetId: !Ref SubnetALB2
+
+    EC2SubnetRouteTableAssociation3:
+        Type: "AWS::EC2::SubnetRouteTableAssociation"
+        Properties:
+            RouteTableId: !Ref RouteTablePublic
+            SubnetId: !Ref SubnetAP1
+
+    EC2SubnetRouteTableAssociation4:
+        Type: "AWS::EC2::SubnetRouteTableAssociation"
+        Properties:
+            RouteTableId: !Ref RouteTablePublic
+            SubnetId: !Ref SubnetAP2
+
+    EC2SubnetRouteTableAssociation5:
+        Type: "AWS::EC2::SubnetRouteTableAssociation"
+        Properties:
+            RouteTableId: !Ref RouteTablePrivate
+            SubnetId: !Ref SubnetDB1
+
+    EC2SubnetRouteTableAssociation6:
+        Type: "AWS::EC2::SubnetRouteTableAssociation"
+        Properties:
+            RouteTableId: !Ref RouteTablePrivate
+            SubnetId: !Ref SubnetDB2
+    #######SecurityGroup###################################################################################################################
+    SecurityGroupAP:
+        Type: "AWS::EC2::SecurityGroup"
+        Properties:
+            GroupDescription: "sg for ap"
+            GroupName: !Sub "${ProjectName}-ap-sg"
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-ap-sg"
+            VpcId: !Ref EC2VPC
+            SecurityGroupIngress: 
+              - 
+                CidrIp: "0.0.0.0/0"
+                FromPort: 80
+                IpProtocol: "tcp"
+                ToPort: 80
+              - 
+                CidrIp: "0.0.0.0/0"
+                FromPort: 22
+                IpProtocol: "tcp"
+                ToPort: 22
+              - 
+                CidrIp: "0.0.0.0/0"
+                FromPort: -1
+                IpProtocol: "icmp"
+                ToPort: -1
+            SecurityGroupEgress: 
+              - 
+                CidrIp: "0.0.0.0/0"
+                IpProtocol: "-1"
+
+    SecurityGroupDB:
+        Type: "AWS::EC2::SecurityGroup"
+        Properties:
+            GroupDescription: "sg for db"
+            GroupName: !Sub "${ProjectName}-db-sg"
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-db-sg"
+            VpcId: !Ref EC2VPC
+            SecurityGroupIngress: 
+              - 
+                SourceSecurityGroupId: !Ref SecurityGroupAP
+                SourceSecurityGroupOwnerId: !Ref AWS::AccountId
+                FromPort: 3306
+                IpProtocol: "tcp"
+                ToPort: 3306
+            SecurityGroupEgress: 
+              - 
+                CidrIp: "10.0.0.0/16"
+                IpProtocol: "-1"
+
+    SecurityGroupALB:
+        Type: "AWS::EC2::SecurityGroup"
+        Properties:
+            GroupDescription: "sg for alb"
+            GroupName: !Sub "${ProjectName}-alb-sg"
+            Tags: 
+              - 
+                Key: "Name"
+                Value: !Sub "${ProjectName}-alb-sg"
+            VpcId: !Ref EC2VPC
+            SecurityGroupIngress: 
+              - 
+                CidrIp: "0.0.0.0/0"
+                FromPort: 80
+                IpProtocol: "tcp"
+                ToPort: 80
+            SecurityGroupEgress: 
+              - 
+                CidrIp: "0.0.0.0/0"
+                IpProtocol: "-1"
+    #######RDS###################################################################################################################
+    RDSDBSubnetGroup:
+        Type: "AWS::RDS::DBSubnetGroup"
+        Properties:
+            DBSubnetGroupDescription: !Sub "${ProjectName}-db-subnet-group"
+            DBSubnetGroupName: !Sub "${ProjectName}-db-subnet-group"
+            SubnetIds: 
+              - !Ref SubnetDB1
+              - !Ref SubnetDB2
+
+    RDSDBInstance:
+        Type: "AWS::RDS::DBInstance"
+        Properties:
+            DBInstanceIdentifier: !Sub "${ProjectName}-mySQL-RDS"
+            AllocatedStorage: "20"
+            DBInstanceClass: "db.t2.micro"
+            Engine: "mysql"
+            MasterUsername: "minitwitteruser"
+            MasterUserPassword: "minitwitterpass"
+            DBName: "minitwitterdb"
+            PreferredBackupWindow: "09:48-10:18"
+            BackupRetentionPeriod: 0
+            AvailabilityZone: !Ref AZ1
+            PreferredMaintenanceWindow: "tue:06:05-tue:06:35"
+            MultiAZ: false
+            EngineVersion: "5.6.51"
+            AutoMinorVersionUpgrade: true
+            LicenseModel: "general-public-license"
+            PubliclyAccessible: false
+            StorageType: "gp2"
+            Port: "3306"
+            StorageEncrypted: false
+            CopyTagsToSnapshot: true
+            MonitoringInterval: 0
+            EnableIAMDatabaseAuthentication: false
+            EnablePerformanceInsights: false
+            DeletionProtection: false
+            DBSubnetGroupName: !Ref RDSDBSubnetGroup
+            VPCSecurityGroups: 
+              - !Ref SecurityGroupDB
+            DBParameterGroupName: "default.mysql5.6"
+            OptionGroupName: "default:mysql-5-6"
+            CACertificateIdentifier: "rds-ca-2019"
+    #######ALB###################################################################################################################
+    ALB:
+        Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+        Properties:
+            Name:  !Sub "${ProjectName}-alb"
+            Scheme: "internet-facing"
+            Type: "application"
+            Subnets: 
+              - !Ref SubnetALB1
+              - !Ref SubnetALB2
+            SecurityGroups: 
+              - !Ref SecurityGroupALB
+            IpAddressType: "ipv4"
+            LoadBalancerAttributes: 
+              - 
+                Key: "access_logs.s3.enabled"
+                Value: "false"
+              - 
+                Key: "idle_timeout.timeout_seconds"
+                Value: "60"
+              - 
+                Key: "deletion_protection.enabled"
+                Value: "false"
+              - 
+                Key: "routing.http2.enabled"
+                Value: "true"
+              - 
+                Key: "routing.http.drop_invalid_header_fields.enabled"
+                Value: "false"
+              - 
+                Key: "routing.http.desync_mitigation_mode"
+                Value: "defensive"
+              - 
+                Key: "waf.fail_open.enabled"
+                Value: "false"
+
+    ALBListener:
+        Type: "AWS::ElasticLoadBalancingV2::Listener"
+        Properties:
+            LoadBalancerArn: !Ref ALB
+            Port: 80
+            Protocol: "HTTP"
+            DefaultActions: 
+              - 
+                TargetGroupArn: !Ref TargetGroup
+                Type: "forward"
+
+    TargetGroup:
+        Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+        Properties:
+            HealthCheckIntervalSeconds: 30
+            HealthCheckPath: "/minitwitter-rds.php"
+            Port: 80
+            Protocol: "HTTP"
+            HealthCheckPort: "traffic-port"
+            HealthCheckProtocol: "HTTP"
+            HealthCheckTimeoutSeconds: 5
+            UnhealthyThresholdCount: 2
+            TargetType: "instance"
+            Matcher: 
+                HttpCode: "200"
+            HealthyThresholdCount: 5
+            VpcId: !Ref EC2VPC
+            Name: !Sub "${ProjectName}-ap-TargetGroup"
+            HealthCheckEnabled: true
+            TargetGroupAttributes: 
+              - 
+                Key: "stickiness.enabled"
+                Value: "false"
+              - 
+                Key: "deregistration_delay.timeout_seconds"
+                Value: "300"
+              - 
+                Key: "stickiness.app_cookie.cookie_name"
+                Value: ""
+              - 
+                Key: "stickiness.type"
+                Value: "lb_cookie"
+              - 
+                Key: "stickiness.lb_cookie.duration_seconds"
+                Value: "86400"
+              - 
+                Key: "slow_start.duration_seconds"
+                Value: "0"
+              - 
+                Key: "stickiness.app_cookie.duration_seconds"
+                Value: "86400"
+              - 
+                Key: "load_balancing.algorithm.type"
+                Value: "round_robin"
+    ##########IAM###############################################################################################################
+    CodeDeployEC2Policy:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            ManagedPolicyName: !Sub "${ProjectName}-CodeDeploy-EC2-Permissions"
+            Path: "/"
+            PolicyDocument: |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": [
+                                "s3:Get*",
+                                "s3:List*"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": "*"
+                        }
+                    ]
+                }
+
+    CodeDeployEC2Role:
+        Type: "AWS::IAM::Role"
+        Properties:
+            Path: "/"
+            RoleName: !Sub "${ProjectName}-CodeDeploy-EC2-Instance-Profile"
+            AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+            MaxSessionDuration: 3600
+            ManagedPolicyArns: 
+              - !Ref CodeDeployEC2Policy
+            Description: "Allows EC2 instances to call AWS services on your behalf."
+
+    CodeDeployServiceRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            Path: "/"
+            RoleName: "CodeDeployServiceRole"
+            AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"codedeploy.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+            MaxSessionDuration: 3600
+            ManagedPolicyArns: 
+              - "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+            Description: "Allows CodeDeploy to call AWS services such as Auto Scaling on your behalf."
+
+    CodeDeployEC2Profile:
+        Type: "AWS::IAM::InstanceProfile"
+        Properties:
+            Path: "/"
+            InstanceProfileName: !Ref CodeDeployEC2Role
+            Roles: 
+              - !Ref CodeDeployEC2Role
+    ##########AS################################################################################################################
+    EC2LaunchTemplate:
+        Type: "AWS::EC2::LaunchTemplate"
+        Properties:
+            LaunchTemplateName: !Sub "${ProjectName}-Amazon-Linux2-tamplate"
+            LaunchTemplateData: 
+                IamInstanceProfile: 
+                    Arn: !Ref CodeDeployEC2Profile
+                UserData: "c3VkbyB5dW0gdXBkYXRlIC15DQpzdWRvIHl1bSBpbnN0YWxsIC15IHJ1YnkNCnN1ZG8geXVtIGluc3RhbGwgLXkgd2dldA0Kc3VkbyB5dW0gaW5zdGFsbCAteSBodHRwZA0Kc3VkbyBhbWF6b24tbGludXgtZXh0cmFzIGluc3RhbGwgcGhwNy4yDQpzdWRvIHl1bSBpbnN0YWxsIHBocCBwaHAtbWJzdHJpbmcNCmNkIC9ob21lL2VjMi11c2VyDQp3Z2V0IGh0dHBzOi8vYXdzLWNvZGVkZXBsb3ktdXMtd2VzdC0yLnMzLnVzLXdlc3QtMi5hbWF6b25hd3MuY29tL2xhdGVzdC9pbnN0YWxsDQpjaG1vZCAreCAuL2luc3RhbGwNCnN1ZG8gLi9pbnN0YWxsIGF1dG8NCnN5c3RlbWN0bCBzdGFydCBjb2RlZGVwbG95LWFnZW50DQpzeXN0ZW1jdGwgc3RhcnQgaHR0cGQNCnN5c3RlbWN0bCBlbmFibGUgY29kZWRlcGxveS1hZ2VudA0Kc3lzdGVtY3RsIGVuYWJsZSBodHRwZA0KDQo="
+                SecurityGroupIds: 
+                  - !Ref SecurityGroupAP
+                KeyName: !Ref EC2key
+                ImageId: "ami-0dc8f589abe99f538"
+                InstanceType: "t2.micro"
+
+    ASGroup:
+        Type: "AWS::AutoScaling::AutoScalingGroup"
+        Properties:
+            AutoScalingGroupName: !Sub "${ProjectName}-ap-asg"
+            LaunchTemplate: 
+                LaunchTemplateId: !Ref EC2LaunchTemplate
+                Version: !GetAtt EC2LaunchTemplate.LatestVersionNumber
+            MinSize: "2"
+            MaxSize: "2"
+            DesiredCapacity: "2"
+            Cooldown: "300"
+            AvailabilityZones: 
+              - !Ref AZ1
+              - !Ref AZ2
+            TargetGroupARNs: 
+              - !Ref TargetGroup
+            HealthCheckType: "EC2"
+            HealthCheckGracePeriod: 300
+            VPCZoneIdentifier: 
+              - !Ref SubnetAP1
+              - !Ref SubnetAP2
+            TerminationPolicies: 
+              - "Default"
+            ServiceLinkedRoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+            Tags: 
+              - 
+                Key: "Name"
+                Value: "CodeDeployTarget"
+                PropagateAtLaunch: true
+            NewInstancesProtectedFromScaleIn: false
+
+    
