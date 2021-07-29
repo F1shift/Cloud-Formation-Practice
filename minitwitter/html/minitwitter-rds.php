@@ -4,7 +4,7 @@
 
   ini_set('display_errors', "On");
 
-  $db_host = "minitwitterrds.c9oxz8hpltsg.us-east-2.rds.amazonaws.com";
+  $db_host = "db.PROJECTNAME.private.hostedzone";
   $db_name = "minitwitterdb";
   $db_user = "minitwitteruser";
   $db_pass = "minitwitterpass";

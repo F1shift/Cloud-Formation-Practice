@@ -461,7 +461,26 @@ Resources:
             LaunchTemplateData: 
                 IamInstanceProfile: 
                     Arn: !GetAtt CodeDeployEC2Profile.Arn
-                UserData: "IyEvYmluL2Jhc2ggLXhlDQpleGVjID4gPih0ZWUgL3Zhci9sb2cvdXNlci1kYXRhLmxvZ3xsb2dnZXIgLXQgdXNlci1kYXRhIC1zIDI+L2Rldi9jb25zb2xlKSAyPiYxDQpzdWRvIHl1bSB1cGRhdGUgLXkNCnN1ZG8geXVtIGluc3RhbGwgLXkgcnVieQ0Kc3VkbyB5dW0gaW5zdGFsbCAteSB3Z2V0DQpzdWRvIHl1bSBpbnN0YWxsIC15IGh0dHBkDQpzdWRvIGFtYXpvbi1saW51eC1leHRyYXMgaW5zdGFsbCAteSBwaHA3LjINCnN1ZG8geXVtIGluc3RhbGwgLXkgcGhwIHBocC1tYnN0cmluZw0KY2QgL2hvbWUvZWMyLXVzZXINCndnZXQgaHR0cHM6Ly9hd3MtY29kZWRlcGxveS11cy13ZXN0LTIuczMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20vbGF0ZXN0L2luc3RhbGwNCmNobW9kICt4IC4vaW5zdGFsbA0Kc3VkbyAuL2luc3RhbGwgYXV0bw0Kc3VkbyBzeXN0ZW1jdGwgc3RhcnQgY29kZWRlcGxveS1hZ2VudA0Kc3VkbyBzeXN0ZW1jdGwgc3RhcnQgaHR0cGQNCnN1ZG8gc3lzdGVtY3RsIGVuYWJsZSBjb2RlZGVwbG95LWFnZW50DQpzdWRvIHN5c3RlbWN0bCBlbmFibGUgaHR0cGQNCg0K"
+                UserData: 
+                  Fn::Base64:
+                    Fn::Sub: |
+                      #!/bin/bash -xe
+                      exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+                      sudo yum update -y
+                      sudo yum install -y ruby
+                      sudo yum install -y wget
+                      sudo yum install -y httpd
+                      sudo amazon-linux-extras install -y php7.2
+                      sudo yum install -y php php-mbstring
+                      cd /home/ec2-user
+                      wget https://aws-codedeploy-us-west-2.s3.us-west-2.amazonaws.com/latest/install
+                      chmod +x ./install
+                      sudo ./install auto
+                      sudo systemctl start codedeploy-agent
+                      sudo systemctl start httpd
+                      sudo systemctl enable codedeploy-agent
+                      sudo systemctl enable httpd
+                      sudo sh -c 'echo ${ProjectName} > /var/project-name'
                 SecurityGroupIds: 
                   - !Ref SecurityGroupAP
                 KeyName: !Ref EC2key
@@ -498,3 +517,50 @@ Resources:
                 Value: !Sub "${ProjectName}-AP"
                 PropagateAtLaunch: true
             NewInstancesProtectedFromScaleIn: false
+    ##########CodeDeploy################################################################################################################
+    CodeDeployApplication:
+        Type: "AWS::CodeDeploy::Application"
+        Properties:
+            ApplicationName: !Sub "${ProjectName}-application"
+            ComputePlatform: "Server"
+    
+    CodeDeployDeploymentGroup:
+        Type: "AWS::CodeDeploy::DeploymentGroup"
+        Properties:
+            ApplicationName: !Ref CodeDeployApplication
+            DeploymentGroupName: !Sub "${ProjectName}-DeploymentGroup"
+            DeploymentConfigName: "CodeDeployDefault.AllAtOnce"
+            ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
+            AutoScalingGroups: 
+              - !Ref ASGroup
+            AlarmConfiguration: 
+                Enabled: false
+                IgnorePollAlarmFailure: false
+            DeploymentStyle: 
+                DeploymentType: "IN_PLACE"
+                DeploymentOption: "WITH_TRAFFIC_CONTROL"
+            LoadBalancerInfo: 
+                TargetGroupInfoList: 
+                  - 
+                    Name: !GetAtt TargetGroup.Name
+            Ec2TagSet: {}
+            OnPremisesTagSet: {}
+    ##########Route53################################################################################################################
+    Route53HostedZone:
+        Type: "AWS::Route53::HostedZone"
+        Properties:
+            Name: !Sub "${ProjectName}.private.hostedzone"
+            VPCs: 
+              - 
+                VPCRegion: !Ref AWS::Region
+                VPCId: !GetAtt EC2VPC.Id
+
+    Route53RecordSet3:
+        Type: "AWS::Route53::RecordSet"
+        Properties:
+            Name: !Sub "db.${Route53HostedZone}"
+            Type: "CNAME"
+            TTL: 300
+            ResourceRecords: 
+              - !GetAtt RDSDBInstance.Endpoint.Address 
+            HostedZoneId: !Ref Route53HostedZone
