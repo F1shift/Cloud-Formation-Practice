@@ -439,7 +439,7 @@ Resources:
         Type: "AWS::IAM::Role"
         Properties:
             Path: "/"
-            RoleName: "CodeDeployServiceRole"
+            RoleName:  !Sub "${ProjectName}-CodeDeployServiceRole"
             AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"codedeploy.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
             MaxSessionDuration: 3600
             ManagedPolicyArns: 
@@ -460,8 +460,8 @@ Resources:
             LaunchTemplateName: !Sub "${ProjectName}-Amazon-Linux2-tamplate"
             LaunchTemplateData: 
                 IamInstanceProfile: 
-                    Arn: !Ref CodeDeployEC2Profile
-                UserData: "c3VkbyB5dW0gdXBkYXRlIC15DQpzdWRvIHl1bSBpbnN0YWxsIC15IHJ1YnkNCnN1ZG8geXVtIGluc3RhbGwgLXkgd2dldA0Kc3VkbyB5dW0gaW5zdGFsbCAteSBodHRwZA0Kc3VkbyBhbWF6b24tbGludXgtZXh0cmFzIGluc3RhbGwgcGhwNy4yDQpzdWRvIHl1bSBpbnN0YWxsIHBocCBwaHAtbWJzdHJpbmcNCmNkIC9ob21lL2VjMi11c2VyDQp3Z2V0IGh0dHBzOi8vYXdzLWNvZGVkZXBsb3ktdXMtd2VzdC0yLnMzLnVzLXdlc3QtMi5hbWF6b25hd3MuY29tL2xhdGVzdC9pbnN0YWxsDQpjaG1vZCAreCAuL2luc3RhbGwNCnN1ZG8gLi9pbnN0YWxsIGF1dG8NCnN5c3RlbWN0bCBzdGFydCBjb2RlZGVwbG95LWFnZW50DQpzeXN0ZW1jdGwgc3RhcnQgaHR0cGQNCnN5c3RlbWN0bCBlbmFibGUgY29kZWRlcGxveS1hZ2VudA0Kc3lzdGVtY3RsIGVuYWJsZSBodHRwZA0KDQo="
+                    Arn: !GetAtt CodeDeployEC2Profile.Arn
+                UserData: "IyEvYmluL2Jhc2ggLXhlDQpleGVjID4+ICggdGVlIC92YXIvbG9nL3VzZXItZGF0YS5sb2cgfCBsb2dnZXIgLXQgdXNlci1kYXRhIC1zIDI+IC9kZXYvY29uc29sZSApIDI+JjENCnN1ZG8geXVtIHVwZGF0ZSAteQ0Kc3VkbyB5dW0gaW5zdGFsbCAteSBydWJ5DQpzdWRvIHl1bSBpbnN0YWxsIC15IHdnZXQNCnN1ZG8geXVtIGluc3RhbGwgLXkgaHR0cGQNCnN1ZG8gYW1hem9uLWxpbnV4LWV4dHJhcyBpbnN0YWxsIC15IHBocDcuMg0Kc3VkbyB5dW0gaW5zdGFsbCAteSBwaHAgcGhwLW1ic3RyaW5nDQpjZCAvaG9tZS9lYzItdXNlcg0Kd2dldCBodHRwczovL2F3cy1jb2RlZGVwbG95LXVzLXdlc3QtMi5zMy51cy13ZXN0LTIuYW1hem9uYXdzLmNvbS9sYXRlc3QvaW5zdGFsbA0KY2htb2QgK3ggLi9pbnN0YWxsDQpzdWRvIC4vaW5zdGFsbCBhdXRvDQpzdWRvIHN5c3RlbWN0bCBzdGFydCBjb2RlZGVwbG95LWFnZW50DQpzdWRvIHN5c3RlbWN0bCBzdGFydCBodHRwZA0Kc3VkbyBzeXN0ZW1jdGwgZW5hYmxlIGNvZGVkZXBsb3ktYWdlbnQNCnN1ZG8gc3lzdGVtY3RsIGVuYWJsZSBodHRwZA0KDQo="
                 SecurityGroupIds: 
                   - !Ref SecurityGroupAP
                 KeyName: !Ref EC2key
@@ -495,8 +495,6 @@ Resources:
             Tags: 
               - 
                 Key: "Name"
-                Value: "CodeDeployTarget"
+                Value: !Sub "${ProjectName}-AP"
                 PropagateAtLaunch: true
             NewInstancesProtectedFromScaleIn: false
-
-    
