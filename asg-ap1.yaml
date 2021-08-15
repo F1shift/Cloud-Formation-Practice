@@ -14,7 +14,6 @@ Parameters:
 
     EC2key:
         Type: AWS::EC2::KeyPair::KeyName
-
 Resources:
     #######VPC###################################################################################################################
     EC2VPC:
@@ -470,6 +469,7 @@ Resources:
                       sudo yum install -y ruby
                       sudo yum install -y wget
                       sudo yum install -y httpd
+                      sudo yum install -y mysql
                       sudo amazon-linux-extras install -y php7.2
                       sudo yum install -y php php-mbstring
                       cd /home/ec2-user
@@ -480,7 +480,7 @@ Resources:
                       sudo systemctl start httpd
                       sudo systemctl enable codedeploy-agent
                       sudo systemctl enable httpd
-                      sudo sh -c 'echo ${ProjectName} > /var/project-name'
+                      sudo sh -c 'echo ${ProjectName} > /home/ec2-user/project-name.txt'
                 SecurityGroupIds: 
                   - !Ref SecurityGroupAP
                 KeyName: !Ref EC2key
@@ -542,7 +542,7 @@ Resources:
             LoadBalancerInfo: 
                 TargetGroupInfoList: 
                   - 
-                    Name: !GetAtt TargetGroup.Name
+                    Name: !GetAtt TargetGroup.TargetGroupName 
             Ec2TagSet: {}
             OnPremisesTagSet: {}
     ##########Route53################################################################################################################
@@ -553,14 +553,19 @@ Resources:
             VPCs: 
               - 
                 VPCRegion: !Ref AWS::Region
-                VPCId: !GetAtt EC2VPC.Id
+                VPCId: !Ref EC2VPC
 
     Route53RecordSet3:
         Type: "AWS::Route53::RecordSet"
         Properties:
-            Name: !Sub "db.${Route53HostedZone}"
+            Name: !Sub "db.${ProjectName}.private.hostedzone"
             Type: "CNAME"
             TTL: 300
             ResourceRecords: 
               - !GetAtt RDSDBInstance.Endpoint.Address 
             HostedZoneId: !Ref Route53HostedZone
+##########Outputs################################################################################################################
+Outputs:
+    WebsiteURL:
+        Description: !Sub "サイトのURL(ALBのDNS名)"
+        Value: !GetAtt ALB.DNSName
