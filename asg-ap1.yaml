@@ -567,5 +567,9 @@ Resources:
 ##########Outputs################################################################################################################
 Outputs:
     WebsiteURL:
-        Description: !Sub "サイトのURL(ALBのDNS名)"
+        Description: "サイトのURL(ALBのDNS名)"
         Value: !GetAtt ALB.DNSName
+    AppDeploy:
+        Description: "事前設定"
+        Value: "上記URLにアクセスする前にDBテーブル作成とAPPのデプロイする手順実行して置くをが必要である。詳細は下記を参照"
+
