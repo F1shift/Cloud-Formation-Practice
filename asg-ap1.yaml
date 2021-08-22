@@ -567,9 +567,9 @@ Resources:
 ##########Outputs################################################################################################################
 Outputs:
     WebsiteURL:
-        Description: "サイトのURL(ALBのDNS名)"
-        Value: !GetAtt ALB.DNSName
+        Description: "URL of the web application.(DNSName of ALB)"
+        Value: !Sub "${ALB.DNSName}/minitwitter-rds.php"
     AppDeploy:
-        Description: "事前設定"
-        Value: "上記URLにアクセスする前にDBテーブル作成とAPPのデプロイする手順実行して置くをが必要である。詳細は下記を参照"
+        Description: "Need to be Setted before first time access to the URL above."
+        Value: "DB table and application deployment moust be done before first time access to the URL above. see detail in readme.txt https://github.com/F1shift/Cloud-Formation-Practice/blob/d46fcbc43fe1cd5e7bf8ec908bd84079a4a01dbf/readme.txt"
 
