@@ -571,5 +571,5 @@ Outputs:
         Value: !Sub "${ALB.DNSName}/minitwitter-rds.php"
     AppDeploy:
         Description: "Need to be Setted before first time access to the URL above."
-        Value: "DB table and application deployment moust be done before first time access to the URL above. see detail in readme.txt https://github.com/F1shift/Cloud-Formation-Practice/blob/d46fcbc43fe1cd5e7bf8ec908bd84079a4a01dbf/readme.txt"
+        Value: "DB table and application deployment moust be done before first time access to the URL above. see detail in readme.txt https://raw.githubusercontent.com/F1shift/Cloud-Formation-Practice/main/readme.txt"
 
